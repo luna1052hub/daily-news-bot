@@ -3,18 +3,18 @@ from bs4 import BeautifulSoup
 import json
 
 # -------------------------------------------------------------
-# ⚠️ 본인의 정보(토큰, ID, API키)를 정확히 입력해 주세요.
+# ⚠️ 본인의 정보(토큰, ID, API키)를 입력해 주세요.
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"
 GEMINI_API_KEY = "AQ.Ab8RN6K3WjcKpVeAW2tVf2lHjj0UHTHjq-MBbiEbaoBcjzmgAw"
 # -------------------------------------------------------------
 
 def analyze_news_impact_with_gemini(news_list):
-    """Gemini 2.5 Flash REST API 직통 호출"""
+    """Gemini AI 호출 및 에러 원인 상세 출력"""
     api_key = GEMINI_API_KEY.strip()
     
-    # Gemini 2.5 Flash 최신 공식 엔드포인트
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    # Gemini REST API 최신 호출 URL
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     
     news_text = "\n".join(news_list)
@@ -23,7 +23,6 @@ def analyze_news_impact_with_gemini(news_list):
 {news_text}
 
 위 뉴스 내용들을 바탕으로, 국내 증시(삼성전자, SK하이닉스, KODEX 200 등)에 미칠 영향과 전망을 3~4줄로 핵심만 요약/예측해 주세요.
-부드럽고 신뢰감 있는 어조로 작성해 주세요.
 """
     
     payload = {
@@ -33,21 +32,21 @@ def analyze_news_impact_with_gemini(news_list):
     }
     
     try:
-        res = requests.post(url, headers=headers, json=payload, timeout=15)
+        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=15)
         
         if res.status_code == 200:
             result = res.json()
             return result['candidates'][0]['content']['parts'][0]['text'].strip()
         else:
-            # 실패 시 에러 원인을 텔레그램 메시지에 출력
+            # 실패 원인 도출
             try:
-                err_detail = res.json().get('error', {}).get('message', res.text)
+                err_msg = res.json().get('error', {}).get('message', res.text)
             except:
-                err_detail = res.text
-            return f"⚠️ AI 분석 불러오기 실패 (코드: {res.status_code})\n원인: {err_detail}"
+                err_msg = res.text
+            return f"⚠️ AI 분석 불러오기 실패 (코드: {res.status_code})\n사유: {err_msg}"
             
     except Exception as e:
-        return f"⚠️ 통신 중 오류 발생: {e}"
+        return f"⚠️ API 통신 중 오류 발생: {e}"
 
 
 def get_market_and_news():

@@ -1,57 +1,54 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 import json
 
 # -------------------------------------------------------------
-# ⚠️ 본인의 정보(토큰, ID, API키)를 입력해 주세요.
+# 1. 깃허브 Secrets에 GEMINI_API_KEY를 등록하셨다면 자동으로 읽어옵니다.
+# 2. 코드에 직접 넣으시려면 아래 따옴표 안에 키를 적어주세요.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "여기에_GEMINI_API_KEY_입력"
+
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"
-GEMINI_API_KEY = "AQ.Ab8RN6K3WjcKpVeAW2tVf2lHjj0UHTHjq-MBbiEbaoBcjzmgAw"
 # -------------------------------------------------------------
 
 def analyze_news_impact_with_gemini(news_list):
-    """Gemini AI 호출 및 에러 원인 상세 출력"""
-    api_key = GEMINI_API_KEY.strip()
+    key = GEMINI_API_KEY.strip()
     
-    # Gemini REST API 최신 호출 URL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # 키 입력 여부 즉시 검증
+    if not key or key.startswith("여기에"):
+        return "⚠️ [API 키 미입력] GEMINI_API_KEY 값이 설정되지 않았습니다."
+
+    # Gemini 2.5 Flash 안정화 엔드포인트
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
     headers = {"Content-Type": "application/json"}
     
     news_text = "\n".join(news_list)
-    prompt = f"""
-다음은 오늘의 주요 뉴스 헤드라인입니다:
-{news_text}
-
-위 뉴스 내용들을 바탕으로, 국내 증시(삼성전자, SK하이닉스, KODEX 200 등)에 미칠 영향과 전망을 3~4줄로 핵심만 요약/예측해 주세요.
-"""
+    prompt = f"다음 뉴스를 읽고 국내 증시 영향을 3줄로 짧게 예측해줘:\n{news_text}"
     
     payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
+        "contents": [{"parts": [{"text": prompt}]}]
     }
     
     try:
-        res = requests.post(url, headers=headers, data=json.dumps(payload), timeout=15)
+        # 타임아웃 10초 지정
+        res = requests.post(url, headers=headers, json=payload, timeout=10)
         
         if res.status_code == 200:
             result = res.json()
             return result['candidates'][0]['content']['parts'][0]['text'].strip()
         else:
-            # 실패 원인 도출
-            try:
-                err_msg = res.json().get('error', {}).get('message', res.text)
-            except:
-                err_msg = res.text
-            return f"⚠️ AI 분석 불러오기 실패 (코드: {res.status_code})\n사유: {err_msg}"
+            return f"⚠️ [API 응답 오류] 상태코드: {res.status_code}\n내용: {res.text[:200]}"
             
+    except requests.exceptions.Timeout:
+        return "⚠️ [통신 시간 초과] Gemini API 응답이 10초를 초과했습니다."
     except Exception as e:
-        return f"⚠️ API 통신 중 오류 발생: {e}"
+        return f"⚠️ [시스템 에러] {e}"
 
 
 def get_market_and_news():
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     
     msg_lines = []
@@ -62,21 +59,20 @@ def get_market_and_news():
     msg_lines.append("-" * 25)
     try:
         news_url = "https://www.mk.co.kr/rss/30000001/"
-        news_res = requests.get(news_url, headers=headers, timeout=10)
+        news_res = requests.get(news_url, headers=headers, timeout=5)
         news_soup = BeautifulSoup(news_res.text, 'html.parser')
         items = news_soup.find_all('item')
 
         count = 0
         for item in items:
             title_tag = item.find('title')
-            if title_tag:
+            if title_tag and title_tag.text.strip():
+                count += 1
                 title = title_tag.text.strip()
-                if title:
-                    count += 1
-                    news_titles.append(f"- {title}")
-                    msg_lines.append(f"{count}. {title}")
-                    if count == 5:
-                        break
+                news_titles.append(f"- {title}")
+                msg_lines.append(f"{count}. {title}")
+                if count == 5:
+                    break
     except Exception as e:
         msg_lines.append(f"뉴스 수집 실패: {e}")
 
@@ -93,7 +89,7 @@ def get_market_and_news():
     for name, code in stocks.items():
         try:
             stock_url = f"https://finance.naver.com/item/main.naver?code={code}"
-            stock_res = requests.get(stock_url, headers=headers, timeout=10)
+            stock_res = requests.get(stock_url, headers=headers, timeout=5)
             stock_soup = BeautifulSoup(stock_res.text, 'html.parser')
             price_tag = stock_soup.select_one("p.no_today span.blind")
             

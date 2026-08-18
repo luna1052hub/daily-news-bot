@@ -6,7 +6,7 @@ import json
 # ⚠️ 본인의 정보로 입력해 주세요.
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"
-GEMINI_API_KEY = "AQ.Ab8RN6KO7UbsUehToXeLjcF6b3vKB7cz9oeyumC73090HJXPRg"
+GEMINI_API_KEY = "AQ.Ab8RN6K3WjcKpVeAW2tVf2lHjj0UHTHjq-MBbiEbaoBcjzmgAw"
 # -------------------------------------------------------------
 
 def analyze_news_impact_with_gemini(news_list):

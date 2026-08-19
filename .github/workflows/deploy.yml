@@ -26,3 +26,5 @@ jobs:
       - name: 파이썬 스크립트 실행
         run: |
           python main.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

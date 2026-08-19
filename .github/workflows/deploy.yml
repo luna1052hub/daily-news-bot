@@ -2,7 +2,6 @@ name: Daily Telegram Bot
 
 on:
   schedule:
-    # UTC 기준 1시 = 한국 시간 오전 10시
     - cron: '0 1 * * *'
   workflow_dispatch:
 

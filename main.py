@@ -4,26 +4,26 @@ from bs4 import BeautifulSoup
 import json
 
 # -------------------------------------------------------------
-# 1) GitHub Secrets 환경변수에서 키를 읽어옵니다.
-# 2) Secrets 설정을 안 하셨다면 아래 따옴표 안에 직접 넣어주세요.
+# GitHub Secrets 또는 직접 입력 중 작동합니다.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AQ.Ab8RN6K3WjcKpVeAW2tVf2lHjj0UHTHjq-MBbiEbaoBcjzmgAw"
-
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"
 # -------------------------------------------------------------
 
 def analyze_news_impact_with_gemini(news_list):
-    key = GEMINI_API_KEY.strip()
+    key = GEMINI_API_KEY.strip() if GEMINI_API_KEY else ""
     
-    if not key or "여기에" in key:
-        return "⚠️ [설정 오류] GEMINI_API_KEY가 입력되지 않았습니다."
+    print(f"DEBUG: 현재 설정된 API KEY 길이: {len(key)}")
+    
+    if not key or "여기에" in key or len(key) < 10:
+        return "⚠️ [설정 오류] GEMINI_API_KEY가 정상적으로 전달되지 않았습니다. Secrets 설정 또는 코드 내 입력값을 확인해 주세요."
 
-    # Gemini 1.5 Flash 공식 엔드포인트
+    # Gemini 1.5 Flash 최신 REST API 엔드포인트
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
     headers = {"Content-Type": "application/json"}
     
     news_text = "\n".join(news_list)
-    prompt = f"다음 뉴스 5개를 참고하여 국내 증시(삼성전자, SK하이닉스, KODEX 200 등)에 미칠 영향과 전망을 3줄로 요약 예측해줘:\n\n{news_text}"
+    prompt = f"다음 뉴스를 보고 국내 증시 영향과 전망을 3줄로 핵심만 요약 예측해줘:\n\n{news_text}"
     
     payload = {
         "contents": [{
@@ -32,27 +32,23 @@ def analyze_news_impact_with_gemini(news_list):
     }
     
     try:
+        print("DEBUG: Gemini API 요청 보내는 중...")
         res = requests.post(url, headers=headers, json=payload, timeout=15)
+        print(f"DEBUG: 응답 코드 = {res.status_code}")
         
         if res.status_code == 200:
             result = res.json()
             try:
                 ai_text = result['candidates'][0]['content']['parts'][0]['text'].strip()
-                return ai_text if ai_text else "⚠️ AI 응답 텍스트가 비어있습니다."
-            except (KeyError, IndexError):
-                return f"⚠️ [응답 파싱 오류] 응답 구조 이상: {result}"
+                return ai_text if ai_text else "⚠️ AI 응답이 비어있습니다."
+            except Exception as parse_err:
+                return f"⚠️ [파싱 에러] 결과 추출 실패: {parse_err}"
         else:
-            # 실패 시 에러 사유를 텔레그램 메세지에 직접 출력
-            try:
-                err_msg = res.json().get('error', {}).get('message', res.text)
-            except:
-                err_msg = res.text
-            return f"⚠️ [Gemini API 연결 실패]\n- 응답코드: {res.status_code}\n- 상세사유: {err_msg}"
+            return f"⚠️ [API 오류] 코드: {res.status_code}\n내용: {res.text}"
             
-    except requests.exceptions.Timeout:
-        return "⚠️ [통신 에러] Gemini API 응답이 15초를 초과했습니다."
     except Exception as e:
-        return f"⚠️ [시스템 에러] {e}"
+        print(f"DEBUG: 예외 발생 = {e}")
+        return f"⚠️ [시스템 예외 발생] {e}"
 
 
 def get_market_and_news():
@@ -115,7 +111,7 @@ def get_market_and_news():
     
     if news_titles:
         ai_analysis = analyze_news_impact_with_gemini(news_titles)
-        msg_lines.append(ai_analysis)
+        msg_lines.append(str(ai_analysis))
     else:
         msg_lines.append("수집된 뉴스가 없어 AI 분석을 진행하지 못했습니다.")
 

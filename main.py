@@ -4,9 +4,10 @@ from bs4 import BeautifulSoup
 import json
 
 # -------------------------------------------------------------
-# ⚠️ 아래 3개 변수에 본인의 정보를 정확히 채워주세요!
-# (GitHub Secrets를 설정하셨다면 GEMINI_API_KEY는 건드리지 않으셔도 됩니다)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "여기에_GEMINI_API_KEY_입력"
+# 1) GitHub Secrets 환경변수에서 키를 읽어옵니다.
+# 2) Secrets 설정을 안 하셨다면 아래 따옴표 안에 직접 넣어주세요.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "여기에_직접_API_키를_넣으셔도_됩니다"
+
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"
 # -------------------------------------------------------------
@@ -15,16 +16,15 @@ def analyze_news_impact_with_gemini(news_list):
     key = GEMINI_API_KEY.strip()
     
     if not key or "여기에" in key:
-        return "⚠️ [설정 오류] GEMINI_API_KEY가 설정되지 않았습니다."
+        return "⚠️ [설정 오류] GEMINI_API_KEY가 입력되지 않았습니다."
 
     # Gemini 1.5 Flash 공식 엔드포인트
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
     headers = {"Content-Type": "application/json"}
     
     news_text = "\n".join(news_list)
-    prompt = f"다음 주요 뉴스를 바탕으로 국내 증시(삼성전자, SK하이닉스, KODEX 200 등)에 미칠 영향과 전망을 3줄로 핵심만 요약해 예측해줘:\n\n{news_text}"
+    prompt = f"다음 뉴스 5개를 참고하여 국내 증시(삼성전자, SK하이닉스, KODEX 200 등)에 미칠 영향과 전망을 3줄로 요약 예측해줘:\n\n{news_text}"
     
-    # API 요청 페이로드
     payload = {
         "contents": [{
             "parts": [{"text": prompt}]
@@ -36,18 +36,21 @@ def analyze_news_impact_with_gemini(news_list):
         
         if res.status_code == 200:
             result = res.json()
-            # 안전한 결과 파싱
             try:
                 ai_text = result['candidates'][0]['content']['parts'][0]['text'].strip()
-                return ai_text if ai_text else "⚠️ AI가 생성한 텍스트가 비어있습니다."
-            except (KeyError, IndexError) as parse_err:
-                return f"⚠️ [응답 파싱 오류] 구글 응답 구조 이상: {result}"
+                return ai_text if ai_text else "⚠️ AI 응답 텍스트가 비어있습니다."
+            except (KeyError, IndexError):
+                return f"⚠️ [응답 파싱 오류] 응답 구조 이상: {result}"
         else:
-            # 실패 시 에러 응답 전문 표시
-            return f"⚠️ [Gemini API 오류 발생]\n- 응답코드: {res.status_code}\n- 상세내용: {res.text}"
+            # 실패 시 에러 사유를 텔레그램 메세지에 직접 출력
+            try:
+                err_msg = res.json().get('error', {}).get('message', res.text)
+            except:
+                err_msg = res.text
+            return f"⚠️ [Gemini API 연결 실패]\n- 응답코드: {res.status_code}\n- 상세사유: {err_msg}"
             
     except requests.exceptions.Timeout:
-        return "⚠️ [통신 에러] AI 응답 시간이 15초를 초과했습니다."
+        return "⚠️ [통신 에러] Gemini API 응답이 15초를 초과했습니다."
     except Exception as e:
         return f"⚠️ [시스템 에러] {e}"
 
@@ -60,7 +63,7 @@ def get_market_and_news():
     msg_lines = []
     news_titles = []
     
-    # [1] 뉴스 수집 (매경 RSS)
+    # [1] 뉴스 수집
     msg_lines.append("📰 오늘의 주요 뉴스")
     msg_lines.append("-" * 25)
     try:
@@ -82,7 +85,7 @@ def get_market_and_news():
     except Exception as e:
         msg_lines.append(f"뉴스 수집 실패: {e}")
 
-    # [2] 주가 수집 (네이버 증권)
+    # [2] 주가 수집
     msg_lines.append("\n📈 주요 증시 및 ETF")
     msg_lines.append("-" * 25)
     

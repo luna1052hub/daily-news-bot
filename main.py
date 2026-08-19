@@ -6,7 +6,7 @@ import json
 # -------------------------------------------------------------
 # 1) GitHub Secrets 환경변수에서 키를 읽어옵니다.
 # 2) Secrets 설정을 안 하셨다면 아래 따옴표 안에 직접 넣어주세요.
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "여기에_직접_API_키를_넣으셔도_됩니다"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AQ.Ab8RN6K3WjcKpVeAW2tVf2lHjj0UHTHjq-MBbiEbaoBcjzmgAw"
 
 BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
 CHAT_ID = "8434942322"

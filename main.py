@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 
 # -------------------------------------------------------------
 # ⚠️ 본인의 봇 토큰만 확인해 주세요!
-BOT_TOKEN = "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w"
+BOT_TOKEN = "여기에_텔레그램_봇_토큰_입력"
 CHAT_ID = "8434942322"
 # -------------------------------------------------------------
 
@@ -26,12 +26,14 @@ def get_market_and_news():
         count = 0
         for item in items:
             title_tag = item.find('title')
-            if title_tag and title_tag.text.strip():
-                title = title_tag.text.strip()
-                count += 1
-                msg_lines.append(f"{count}. {title}")
-                if count == 5:
-                    break
+            if title_tag:
+                # CDATA 특수 태그 깔끔하게 제거
+                title = title_tag.get_text(strip=True).replace("<![CDATA[", "").replace("]]>", "").strip()
+                if title:
+                    count += 1
+                    msg_lines.append(f"{count}. {title}")
+                    if count == 5:
+                        break
     except Exception as e:
         msg_lines.append(f"뉴스 수집 실패: {e}")
 

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 # -------------------------------------------------------------
 # GitHub Secrets에서 토큰과 CHAT_ID를 안전하게 불러옵니다.
 # (Secrets가 없을 경우를 대비해 코드 내 기본값도 예비로 유지합니다)
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "여기에_토큰을_직접_넣으셔도_됩니다")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8806819870:AAFfZZ5SZbjfK4EUWmpxsPYwR353FwrTn6w")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "8434942322")
 # -------------------------------------------------------------
 

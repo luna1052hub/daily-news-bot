@@ -1,10 +1,12 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 
 # -------------------------------------------------------------
-# ⚠️ 본인의 봇 토큰만 확인해 주세요!
-BOT_TOKEN = "여기에_텔레그램_봇_토큰_입력"
-CHAT_ID = "8434942322"
+# GitHub Secrets에서 토큰과 CHAT_ID를 안전하게 불러옵니다.
+# (Secrets가 없을 경우를 대비해 코드 내 기본값도 예비로 유지합니다)
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "여기에_토큰을_직접_넣으셔도_됩니다")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "8434942322")
 # -------------------------------------------------------------
 
 def get_market_and_news():
@@ -67,6 +69,11 @@ def get_market_and_news():
 def send_telegram_message(message):
     token = BOT_TOKEN.strip()
     chat_id = CHAT_ID.strip()
+    
+    if not token or token == "여기에_토큰을_직접_넣으셔도_됩니다":
+        print("❌ 오류: 텔레그램 BOT_TOKEN이 설정되지 않았습니다.")
+        return
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     
     data = {
@@ -81,5 +88,6 @@ def send_telegram_message(message):
         print(f"❌ 전송 실패: {res.text}")
 
 # --- 실행 ---
-final_message = get_market_and_news()
-send_telegram_message(final_message)
+if __name__ == "__main__":
+    final_message = get_market_and_news()
+    send_telegram_message(final_message)
